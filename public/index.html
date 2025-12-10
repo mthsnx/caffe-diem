@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cafe Diem | Seize the Bean</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <div class="logo">☕ CAFE DIEM</div>
+        <nav class="nav-links">
+            <a href="#">Menu</a>
+            <a href="#">Rewards</a>
+            <a href="#">Locations</a>
+        </nav>
+        <button class="cart-btn" onclick="toggleCart()">
+            🛒 <span id="cart-count">0</span>
+        </button>
+    </header>
+
+    <section class="hero">
+        <h1>Seize the Bean.</h1>
+        <p>Order ahead and skip the line.</p>
+    </section>
+
+    <div class="container">
+        <h2 class="category-title">Espresso & Coffee</h2>
+        <div class="menu-grid" id="coffee-grid"></div>
+
+        <h2 class="category-title" style="margin-top: 3rem;">Fresh Bakery</h2>
+        <div class="menu-grid" id="food-grid"></div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleCart()"></div>
+    <div class="cart-sidebar" id="cart-sidebar">
+        <div class="cart-header">
+            <h3>Your Order</h3>
+            <button class="close-cart" onclick="toggleCart()">×</button>
+        </div>
+        <div class="cart-items" id="cart-items-container">
+            <p style="text-align:center; margin-top: 2rem; color:#666;">Your cart is empty.</p>
+        </div>
+        <div class="cart-footer">
+            <div class="total-row">
+                <span>Total</span>
+                <span id="cart-total">$0.00</span>
+            </div>
+            <button class="checkout-btn" onclick="checkout()">Checkout</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
