@@ -14,10 +14,9 @@ let cart = [];
 
 // --- HELPER FUNCTION: Generate Random 6-Digit Order Code ---
 function generateOrderCode() {
-    // Generates a number between 100000 and 999999
+    // Genererer et 6-sifret tall som fungerer som OrderId for Vipps og vår DB
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
-
 
 // --- FUNCTION: Render Menu on Page Load ---
 function renderMenu() {
@@ -97,7 +96,7 @@ function toggleCart() {
     document.getElementById('overlay').classList.toggle('active');
 }
 
-// --- FUNCTION: Checkout (Sends Data to Node Server) ---
+// --- FUNCTION: Checkout (Vipps Integration) ---
 async function checkout() {
     if(cart.length === 0) {
         alert("Your cart is empty!");
@@ -105,11 +104,8 @@ async function checkout() {
     }
 
     const total = cart.reduce((sum, item) => sum + item.price, 0).toFixed(2);
-    
-    // Generate the unique code
     const orderCode = generateOrderCode();
 
-    // Prepare the order data to send to the Node server, including the new code
     const orderData = {
         orderCode: orderCode,
         items: cart.map(item => ({ name: item.name, price: item.price })),
@@ -117,29 +113,50 @@ async function checkout() {
     };
 
     try {
-        const response = await fetch('/submit-order', {
+        // STEG 1: Initialiser og lagre ordren i vår database (server.js /submit-order)
+        let response = await fetch('/submit-order', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(orderData)
         });
 
-        const result = await response.json();
+        let result = await response.json();
 
-        if (response.ok) {
-            // Display the order code prominently to the user
-            alert(`✅ Order Placed! Your Code is: ${result.orderCode}\n\nTotal: $${orderData.total}\n\nPlease present this code at the pickup counter.`);
+        if (!response.ok) {
+            return alert(`🚫 Feil under ordreforberedelse: ${result.message || 'Server error.'}`);
+        }
+        
+        // STEG 2: Start Vipps-betalingen (server.js /start-vipps-payment)
+        const vippsResponse = await fetch('/start-vipps-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderCode: orderCode, total: orderData.total })
+        });
+        
+        const vippsResult = await vippsResponse.json();
+        
+        if (vippsResponse.ok && vippsResult.success && vippsResult.vippsUrl) {
+            // STEG 3: Omdiriger brukeren til Vipps for betaling
+            
+            // Før omdirigering, tilbakestill handlekurven
             cart = [];
             updateCartUI();
             toggleCart();
+            
+            // Fortell brukeren koden før de forlater siden
+            alert(`✅ Ordre klargjort! Koden din er: ${orderCode}. Du blir nå videresendt til Vipps for betaling av ${orderData.total} kr.`);
+            
+            // Videresend til Vipps
+            window.location.href = vippsResult.vippsUrl;
+            
         } else {
-            alert(`Failed to place order. Error: ${result.message || 'Server error.'}`);
+            // Vipps-kall feilet
+            alert(`❌ Vipps-betaling feilet ved oppstart: ${vippsResult.message || 'Ukjent Vipps-feil.'} Vennligst prøv igjen.`);
         }
 
     } catch (error) {
-        console.error('Checkout failed:', error);
-        alert('Could not connect to the server. Please ensure Node.js is running.');
+        console.error('Checkout failed (Network or server down):', error);
+        alert('Kunne ikke fullføre betalingsprosessen. Sjekk at serveren kjører.');
     }
 }
 
